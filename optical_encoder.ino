@@ -4,29 +4,27 @@ int motor_signal;
 float temp;
 const int fsr = 5; //voltage Full scale resulation
 int ad_result;    // Analog to Digital conversion Result
-float v_out;       
+float v_out;
 float port_read; //Read value from the port
 float rps;       // Round per Second
 float rpm;     // Round per Minute
 float adc_resulation; // Analog to Digital conversion Resluation
-const int rs = A4 , en = 12 , d4 = 11, d5 = 10, d6 = 9, d7 = 8;
+const int rs = A4 , en = 13 , d4 = 12, d5 = 11, d6 = 9, d7 = 8;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 void setup() {
-  DDRD = B00000000; //Port initialization 
+  DDRD = B00000000; //Port initialization
   PORTD = B00000000;
   pinMode(A0, INPUT); //potenimeter input
   pinMode(11, OUTPUT); // Encoder Input
-  pinMode(A5,OUTPUT); // Fan 
-  digitalWrite(A1, HIGH); //Temperature sensor pin 
-  digitalWrite(A3, LOW);  //Temperature sensor pin 
-  pinMode(A2, INPUT);    // Temperature sensor Input 
+  pinMode(A5, OUTPUT); // Fan
+  pinMode(A1, INPUT); //motor enable switch
   lcd.begin(16, 2);
 
 }
 
 void loop() {
 
-  Encoder_Drive();
+  Encoder_Drive(); // motor drive
   Encoder_Cooling();
   Encoder_Rpm();
   Display();
@@ -34,17 +32,20 @@ void loop() {
 
 void Encoder_Drive() {
   pot_input = analogRead(A0);
-  motor_signal = map(pot_input, 0, 1023, 70, 255);
-  analogWrite(13, motor_signal);
+  digitalRead(A1);
+  if (A1 == HIGH) {
+    motor_signal = map(pot_input, 0, 1023, 70, 255); // 70 first value the motor begins
+    analogWrite(10, motor_signal);
+  }
 }
 
 void Encoder_Cooling() {
-  ad_result = analogRead(A2);
+  ad_result = analogRead(A2); // Temperature sensor Input
   adc_resulation = fsr / (1023.0);
   v_out = adc_resulation * ad_result;
   temp = v_out * 100.0;
-  if(temp>=25){
-    digitalWrite(A5,HIGH); // Turning of Fan
+  if (temp >= 25) {
+    digitalWrite(A5, HIGH); // Turning of Fan
   }
 }
 void Encoder_Rpm() {
@@ -58,7 +59,11 @@ void Display() {
   lcd.print(rps);
   lcd.print("Rpm:");
   lcd.print(rpm);
-  lcd.setCursor(0, 1);
-  lcd.print("Temperature:");
+  lcd.print(" T:");
   lcd.print(temp);
+  lcd.setCursor(0, 1);
+  lcd.print("Rpm:");
+  lcd.print(rpm);
+  lcd.print(" UIV:"); // user input voltage
+  lcd.print(motor_signal);
 }
